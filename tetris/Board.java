@@ -1,6 +1,8 @@
 // Board.java
 package tetris;
 
+import java.util.Arrays;
+
 /**
  CS108 Tetris Board.
  Represents a Tetris board -- essentially a 2-d grid
@@ -17,6 +19,13 @@ public class Board	{
 	private boolean DEBUG = true;
 	boolean committed;
 	
+	private int maxHeight;
+	private int[] widths;
+	private int[] heights;
+	private boolean[][] backUpGrid;
+	private int[] backUpWidths;
+	private int[] backUpHeights;
+	private int backUpMaxHeight;
 	
 	// Here a few trivial methods are provided:
 	
@@ -30,7 +39,13 @@ public class Board	{
 		grid = new boolean[width][height];
 		committed = true;
 		
-		// YOUR CODE HERE
+		backUpGrid = new boolean[width][height];
+		heights = new int[width];
+		backUpHeights = new int[width];
+		widths = new int[height];
+		backUpWidths = new int[height];
+		maxHeight = 0;
+		backUpMaxHeight = 0;
 	}
 	
 	
@@ -55,7 +70,7 @@ public class Board	{
 	 For an empty board this is 0.
 	*/
 	public int getMaxHeight() {	 
-		return 0; // YOUR CODE HERE
+		return maxHeight; 
 	}
 	
 	
@@ -65,7 +80,33 @@ public class Board	{
 	*/
 	public void sanityCheck() {
 		if (DEBUG) {
-			// YOUR CODE HERE
+			int realMaxHeight = 0;
+			int[] realHeights = new int[width];
+			int[] realWidths = new int[height];
+			
+			for(int i = 0; i < getWidth(); i++){
+				for(int j = 0; j < getHeight(); j++){
+					if(grid[i][j]){
+						realWidths[j] += 1;
+						if(j + 1 > realHeights[i]){
+							realHeights[i] = j + 1;
+							if(realHeights[i] > realMaxHeight){
+								realMaxHeight = realHeights[i];
+							}
+						}
+					}
+				}
+			}
+			
+			if(!Arrays.equals(realWidths, widths)){
+				 throw new RuntimeException("Array of widths is not correct");
+			}
+			if(!Arrays.equals(realHeights, heights)){
+				 throw new RuntimeException("Array of heights is not correct");
+			}
+			if(getMaxHeight() != realMaxHeight){
+				 throw new RuntimeException("Maximum Height of Grid is not correct");
+			}
 		}
 	}
 	
@@ -79,7 +120,14 @@ public class Board	{
 	 to compute this fast -- O(skirt length).
 	*/
 	public int dropHeight(Piece piece, int x) {
-		return 0; // YOUR CODE HERE
+		int h = 0;	
+		for(int i = 0; i < piece.getSkirt().length; i++){
+			if(getColumnHeight(x + i) - piece.getSkirt()[i] > 0 
+					&& getColumnHeight(x + i) - piece.getSkirt()[i] > h){
+				h = getColumnHeight(x + i) - piece.getSkirt()[i];
+			}
+		}
+		return h;
 	}
 	
 	
@@ -89,7 +137,7 @@ public class Board	{
 	 The height is 0 if the column contains no blocks.
 	*/
 	public int getColumnHeight(int x) {
-		return 0; // YOUR CODE HERE
+		return heights[x];
 	}
 	
 	
@@ -98,7 +146,7 @@ public class Board	{
 	 the given row.
 	*/
 	public int getRowWidth(int y) {
-		 return 0; // YOUR CODE HERE
+		 return widths[y]; 
 	}
 	
 	
@@ -108,7 +156,11 @@ public class Board	{
 	 always return true.
 	*/
 	public boolean getGrid(int x, int y) {
-		return false; // YOUR CODE HERE
+		boolean validArea = false;
+		if(x >= getWidth() || x < 0 || y < 0 || y > getHeight()){
+			validArea = true;
+		}
+		return grid[x][y] || validArea;
 	}
 	
 	
@@ -136,20 +188,86 @@ public class Board	{
 		if (!committed) throw new RuntimeException("place commit problem");
 			
 		int result = PLACE_OK;
+		committed = false;
+		keepBoard();
 		
-		// YOUR CODE HERE
+		for(int i = 0; i < piece.getBody().length; i++){
+			int curPtX = piece.getBody()[i].x;
+			int curPtY = piece.getBody()[i].y;
+			
+			if((curPtX + x >= getWidth()) || (curPtX + x < 0) 
+					|| (curPtY + y >= getHeight()) || (curPtY + y < 0)){
+				return PLACE_OUT_BOUNDS;
+			}
+			if(getGrid(curPtX + x, curPtY + y)){
+				return PLACE_BAD;
+			}
+			
+			grid[curPtX + x][curPtY + y] = true;
+			
+			widths[curPtY + y] += 1;
+			if(widths[curPtY + y] == getWidth()){
+				result = PLACE_ROW_FILLED;
+			}
+			
+			if(curPtY + y + 1 > heights[curPtX + x]){
+				heights[curPtX + x] = curPtY + y + 1;
+				if(heights[curPtX + x] > getMaxHeight()){
+					maxHeight = heights[curPtX + x];
+				}
+			}
+		}
 		
+		sanityCheck();
 		return result;
 	}
 	
 	
+	private void keepBoard() {
+		System.arraycopy(widths, 0, backUpWidths, 0, getHeight());
+		System.arraycopy(heights, 0, backUpHeights, 0, getWidth());
+		
+		backUpMaxHeight = getMaxHeight();
+		
+		for(int i = 0; i < grid.length; i++){
+			System.arraycopy(grid[i], 0, backUpGrid[i], 0, grid[i].length);
+		}
+	}
+
+
 	/**
 	 Deletes rows that are filled all the way across, moving
 	 things above down. Returns the number of rows cleared.
 	*/
 	public int clearRows() {
 		int rowsCleared = 0;
-		// YOUR CODE HERE
+		committed = false;
+		
+		int to = 0;
+		for(int from = 0; from < getHeight(); from++){
+			if(widths[from] == getWidth()){
+				rowsCleared += 1;
+			}else{
+				if(rowsCleared > 0){
+					for(int i = 0; i < getWidth(); i++){
+						grid[i][to] = grid[i][from];	
+					}
+					widths[to] = widths[from];
+				}
+				to += 1; 
+			}
+		}
+		
+		for(int i = to; i < getHeight(); i++){
+			widths[i] = 0;
+			for(int j = 0; j < getWidth(); j++){
+				grid[j][i] = false;
+				heights[j] -= 1;
+			}
+		}
+		
+		
+		maxHeight -= rowsCleared;
 		sanityCheck();
 		return rowsCleared;
 	}
@@ -164,7 +282,24 @@ public class Board	{
 	 See the overview docs.
 	*/
 	public void undo() {
-		// YOUR CODE HERE
+		if(!committed){
+			commit();
+			
+			boolean[][] tmp = grid;
+			grid = backUpGrid;
+			backUpGrid = tmp;
+			
+			int[] tmpW = widths;
+			widths = backUpWidths;
+			backUpWidths = tmpW;
+			
+			int[] tmpH = heights;
+			heights = backUpHeights;
+			backUpHeights = tmpH;
+			
+			maxHeight = backUpMaxHeight;	
+		}
+		sanityCheck();
 	}
 	
 	

@@ -2,7 +2,6 @@
 package tetris;
 
 import java.util.*;
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 
 import com.sun.javafx.scene.paint.GradientUtils.Point;
 
@@ -38,8 +37,6 @@ public class Piece {
 	 Makes its own copy of the array and the TPoints inside it.
 	*/
 	public Piece(TPoint[] points) {
-		
-		
 		Arrays.sort(points);
 		this.body = points;
 
@@ -65,9 +62,7 @@ public class Piece {
 				}
 			}
 		}
-		//for(int i = 0; i < skr.length; i++){
-			//System.out.println(skr[i]);
-		//}
+		
 		this.skirt = skr;
 		
 	}
@@ -165,12 +160,6 @@ public class Piece {
 		// (null will be false)
 		if (!(obj instanceof Piece)) return false;
 		Piece other = (Piece)obj;
-		
-		//for(int i = 0; i < getBody().length; i++){
-			//if(!getBody()[i].equals(other.getBody()[i])){//because of they are sorted arrays, 
-				//return false;					             //you can compare them in this way
-			//}
-		//}
 			
 		return Arrays.equals(getBody(), other.getBody());
 	}
@@ -247,10 +236,7 @@ public class Piece {
 			nextPiece = nextPiece.computeNextRotation();
 		}
 		
-		root.next = nextPiece;
-		if(nextPiece.equals(root)){
-			nextPiece.next = root;
-		}
+		root.next = tmp;
 		
 		return tmp;
 	}
