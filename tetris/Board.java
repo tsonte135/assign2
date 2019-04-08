@@ -44,8 +44,6 @@ public class Board	{
 		backUpHeights = new int[width];
 		widths = new int[height];
 		backUpWidths = new int[height];
-		maxHeight = 0;
-		backUpMaxHeight = 0;
 	}
 	
 	
